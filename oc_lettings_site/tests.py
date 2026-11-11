@@ -7,7 +7,8 @@ from django.contrib.auth.models import User
 from django.test import Client, override_settings
 from django.urls import reverse
 
-from .models import Address, Letting, Profile
+from lettings.models import Address, Letting
+from profiles.models import Profile
 
 
 @override_settings(DEBUG=False, ALLOWED_HOSTS=['testserver'])
