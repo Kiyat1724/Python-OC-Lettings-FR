@@ -1,3 +1,21 @@
-**/__pycache__
-*.pyc
-venv
+# Environnements virtuels
+.venv/
+.venv-modern/
+venv/
+
+# Fichiers Python temporaires
+__pycache__/
+*.py[cod]
+
+# Cache des tests et rapports de couverture
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Configuration locale
+.env
+.env.*
+
+# Fichiers statiques collectés
+staticfiles/
