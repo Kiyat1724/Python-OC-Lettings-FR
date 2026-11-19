@@ -4,17 +4,24 @@ from django.db import migrations
 
 
 def copy_existing_data(apps, schema_editor):
-    """Copier les profils en conservant leurs utilisateurs et identifiants."""
+    """Copier en lot en conservant les utilisateurs et identifiants."""
     OldProfile = apps.get_model('oc_lettings_site', 'Profile')
     NewProfile = apps.get_model('profiles', 'Profile')
     database = schema_editor.connection.alias
 
-    for profile in OldProfile.objects.using(database).all().iterator():
-        NewProfile.objects.using(database).create(
+    profiles = [
+        NewProfile(
             id=profile.id,
             user_id=profile.user_id,
             favorite_city=profile.favorite_city,
         )
+        for profile in OldProfile.objects.using(database).all().iterator()
+    ]
+
+    NewProfile.objects.using(database).bulk_create(
+        profiles,
+        batch_size=100,
+    )
 
 
 class Migration(migrations.Migration):

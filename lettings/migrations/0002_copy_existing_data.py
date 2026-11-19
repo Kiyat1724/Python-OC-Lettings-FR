@@ -4,15 +4,15 @@ from django.db import migrations
 
 
 def copy_existing_data(apps, schema_editor):
-    """Conserver les identifiants et les liens entre les enregistrements."""
+    """Copier en lot en conservant les identifiants et les relations."""
     OldAddress = apps.get_model('oc_lettings_site', 'Address')
     OldLetting = apps.get_model('oc_lettings_site', 'Letting')
     NewAddress = apps.get_model('lettings', 'Address')
     NewLetting = apps.get_model('lettings', 'Letting')
     database = schema_editor.connection.alias
 
-    for address in OldAddress.objects.using(database).all().iterator():
-        NewAddress.objects.using(database).create(
+    addresses = [
+        NewAddress(
             id=address.id,
             number=address.number,
             street=address.street,
@@ -21,13 +21,27 @@ def copy_existing_data(apps, schema_editor):
             zip_code=address.zip_code,
             country_iso_code=address.country_iso_code,
         )
+        for address in OldAddress.objects.using(database).all().iterator()
+    ]
 
-    for letting in OldLetting.objects.using(database).all().iterator():
-        NewLetting.objects.using(database).create(
+    NewAddress.objects.using(database).bulk_create(
+        addresses,
+        batch_size=100,
+    )
+
+    lettings = [
+        NewLetting(
             id=letting.id,
             title=letting.title,
             address_id=letting.address_id,
         )
+        for letting in OldLetting.objects.using(database).all().iterator()
+    ]
+
+    NewLetting.objects.using(database).bulk_create(
+        lettings,
+        batch_size=100,
+    )
 
 
 class Migration(migrations.Migration):
