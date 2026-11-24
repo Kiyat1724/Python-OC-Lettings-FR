@@ -4,6 +4,8 @@ from pathlib import Path
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = Path(__file__).resolve().parent.parent
+# Conserver le type des identifiants défini dans les migrations existantes.
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 
 # Quick-start development settings - unsuitable for production
