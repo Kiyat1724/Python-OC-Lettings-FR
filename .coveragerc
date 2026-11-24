@@ -1,0 +1,10 @@
+[run]
+source =
+    lettings
+    profiles
+    oc_lettings_site
+omit =
+    */tests.py
+    */tests/*
+    */migrations/*
+    

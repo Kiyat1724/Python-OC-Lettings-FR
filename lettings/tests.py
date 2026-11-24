@@ -1,4 +1,4 @@
-"""Tests des listes et des fiches des locations."""
+"""Tests des pages et des modèles de locations."""
 
 import pytest
 from django.urls import reverse
@@ -51,3 +51,34 @@ def test_letting_detail_displays_title_and_address(client):
     html = response.content.decode()
     assert letting.title in html
     assert address.street in html
+
+
+def test_address_string_representation():
+    """Une adresse est représentée par son numéro et sa rue."""
+    address = Address(
+        number=12,
+        street='Ocean Drive',
+        city='Newport Beach',
+        state='CA',
+        zip_code=92660,
+        country_iso_code='USA',
+    )
+
+    assert str(address) == '12 Ocean Drive'
+
+
+def test_letting_string_representation():
+    """Une location est représentée par son titre."""
+    letting = Letting(title='Ocean View House')
+
+    assert str(letting) == 'Ocean View House'
+
+
+@pytest.mark.django_db
+def test_unknown_letting_returns_404(client):
+    """Une location inexistante renvoie une réponse 404."""
+    url = reverse('letting', kwargs={'letting_id': 999999})
+
+    response = client.get(url)
+
+    assert response.status_code == 404
