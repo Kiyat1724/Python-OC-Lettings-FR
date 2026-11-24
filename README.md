@@ -1,77 +1,359 @@
-## Résumé
+# Orange County Lettings
 
-Site web d'Orange County Lettings
+Application Django de consultation de locations et de profils utilisateurs.
 
-## Développement local
+Projet réalisé dans le cadre du parcours Développeur Python d’OpenClassrooms.
+
+## Environnement validé
+
+- Python 3.14.7, indiqué dans `.python-version`
+- Django 6.1.3
+- SQLite
+- Docker Desktop avec conteneurs Linux
+- GitHub Actions pour l’intégration continue
+
+Les versions exactes des dépendances sont enregistrées dans
+`requirements.txt`.
+
+## Architecture
+
+- `oc_lettings_site` : configuration du projet, accueil et pages d’erreur
+- `lettings` : adresses et locations
+- `profiles` : profils liés aux utilisateurs Django
+- `templates` : templates HTML
+- `static` : fichiers CSS, JavaScript, images et polices
+
+## Installation locale
 
 ### Prérequis
 
-- Compte GitHub avec accès en lecture à ce repository
-- Git CLI
-- SQLite3 CLI
-- Interpréteur Python, version 3.6 ou supérieure
+- Git
+- uv
+- Un terminal PowerShell sous Windows, ou un shell sous Linux/macOS
 
-Dans le reste de la documentation sur le développement local, il est supposé que la commande `python` de votre OS shell exécute l'interpréteur Python ci-dessus (à moins qu'un environnement virtuel ne soit activé).
+### Récupérer le projet
 
-### macOS / Linux
+```bash
+git clone https://github.com/Kiyat1724/Python-OC-Lettings-FR.git
+cd Python-OC-Lettings-FR
+```
 
-#### Cloner le repository
+Les développements décrits ici sont actuellement sur la branche
+`feat/docker` :
 
-- `cd /path/to/put/project/in`
-- `git clone https://github.com/OpenClassrooms-Student-Center/Python-OC-Lettings-FR.git`
+```bash
+git switch feat/docker
+```
 
-#### Créer l'environnement virtuel
+### Créer l’environnement
 
-- `cd /path/to/Python-OC-Lettings-FR`
-- `python -m venv venv`
-- `apt-get install python3-venv` (Si l'étape précédente comporte des erreurs avec un paquet non trouvé sur Ubuntu)
-- Activer l'environnement `source venv/bin/activate`
-- Confirmer que la commande `python` exécute l'interpréteur Python dans l'environnement virtuel
-`which python`
-- Confirmer que la version de l'interpréteur Python est la version 3.6 ou supérieure `python --version`
-- Confirmer que la commande `pip` exécute l'exécutable pip dans l'environnement virtuel, `which pip`
-- Pour désactiver l'environnement, `deactivate`
+```bash
+uv venv --python 3.14.7 .venv-modern
+```
 
-#### Exécuter le site
+Sous Windows PowerShell :
 
-- `cd /path/to/Python-OC-Lettings-FR`
-- `source venv/bin/activate`
-- `pip install --requirement requirements.txt`
-- `python manage.py runserver`
-- Aller sur `http://localhost:8000` dans un navigateur.
-- Confirmer que le site fonctionne et qu'il est possible de naviguer (vous devriez voir plusieurs profils et locations).
+```powershell
+.\.venv-modern\Scripts\Activate.ps1
+```
 
-#### Linting
+Sous Linux/macOS :
 
-- `cd /path/to/Python-OC-Lettings-FR`
-- `source venv/bin/activate`
-- `flake8`
+```bash
+source .venv-modern/bin/activate
+```
 
-#### Tests unitaires
+Installer les dépendances :
 
-- `cd /path/to/Python-OC-Lettings-FR`
-- `source venv/bin/activate`
-- `pytest`
+```bash
+uv pip install -r requirements.txt
+```
 
-#### Base de données
+Vérifier l’installation :
 
-- `cd /path/to/Python-OC-Lettings-FR`
-- Ouvrir une session shell `sqlite3`
-- Se connecter à la base de données `.open oc-lettings-site.sqlite3`
-- Afficher les tables dans la base de données `.tables`
-- Afficher les colonnes dans le tableau des profils, `pragma table_info(Python-OC-Lettings-FR_profile);`
-- Lancer une requête sur la table des profils, `select user_id, favorite_city from
-  Python-OC-Lettings-FR_profile where favorite_city like 'B%';`
-- `.quit` pour quitter
+```bash
+python --version
+python -m django --version
+uv pip check
+python manage.py check
+```
 
-#### Panel d'administration
+### Préparer la base de données
 
-- Aller sur `http://localhost:8000/admin`
-- Connectez-vous avec l'utilisateur `admin`, mot de passe `Abc1234!`
+Avant de migrer une base contenant des données importantes, en conserver
+une sauvegarde.
 
-### Windows
+Examiner puis appliquer les migrations :
 
-Utilisation de PowerShell, comme ci-dessus sauf :
+```bash
+python manage.py migrate --plan
+python manage.py migrate
+```
 
-- Pour activer l'environnement virtuel, `.\venv\Scripts\Activate.ps1` 
-- Remplacer `which <my-command>` par `(Get-Command <my-command>).Path`
+Une base neuve ne contient pas automatiquement les données de démonstration.
+
+Les migrations de copie transfèrent les données des anciennes tables
+lorsqu’elles existent et contiennent des enregistrements.
+
+### Démarrer le site
+
+```bash
+python manage.py runserver
+```
+
+Accès :
+
+- Accueil : http://127.0.0.1:8000/
+- Locations : http://127.0.0.1:8000/lettings/
+- Profils : http://127.0.0.1:8000/profiles/
+- Administration : http://127.0.0.1:8000/admin/
+
+Sur une base neuve, créer un administrateur :
+
+```bash
+python manage.py createsuperuser
+```
+
+Sur une base existante, utiliser un compte administrateur connu.
+
+## Migrations et conservation des données
+
+La séparation des applications suit cet ordre :
+
+1. Création des modèles et des tables de `lettings` et `profiles`.
+2. Copie des données avec `RunPython` et `bulk_create`.
+3. Suppression des anciens modèles et tables après les migrations de copie.
+
+Les identifiants sont conservés. Les adresses sont copiées avant les
+locations afin de préserver leurs relations. Les profils conservent leurs
+liens avec les utilisateurs.
+
+La nouvelle version des migrations de copie a été rejouée sur une copie
+d’une sauvegarde antérieure à la refonte.
+
+La comparaison avant/après a confirmé :
+
+- 6 adresses identiques ;
+- 6 locations identiques ;
+- 4 profils identiques ;
+- aucune relation invalide ;
+- suppression des anciennes tables.
+
+Les migrations de copie ne fournissent pas de fonction de retour arrière.
+Ne pas tenter un retour à un état antérieur sans stratégie de restauration.
+
+Le réglage `DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'` conserve
+le type d’identifiant défini dans les migrations existantes.
+
+## Tests et qualité
+
+Exécuter les tests :
+
+```bash
+python -m pytest
+```
+
+Mesurer la couverture :
+
+```bash
+python -m pytest --cov --cov-report=term-missing
+```
+
+Vérifier le code :
+
+```bash
+python -m flake8
+```
+
+Vérifier la cohérence des modèles et des migrations sans créer de fichier :
+
+```bash
+python manage.py makemigrations --check --dry-run
+```
+
+### Derniers résultats validés
+
+- 11 tests réussis
+- 92 % de couverture des lignes dans le périmètre configuré
+- Aucun signalement Flake8
+
+Le fichier `.coveragerc` exclut les tests et les migrations du calcul.
+Les points d’entrée ASGI et WSGI restent inclus.
+
+Les tests couvrent notamment :
+
+- les listes et les fiches de locations et de profils ;
+- les représentations textuelles des modèles ;
+- les ressources inexistantes ;
+- les pages d’erreur 404 et 500.
+
+La couverture mesure les lignes exécutées ; elle ne garantit pas que
+tous les scénarios possibles sont vérifiés.
+
+Les rapports de couverture ne sont pas versionnés.
+
+## Docker : développement local
+
+### Prérequis
+
+Docker Desktop doit être démarré avec son moteur Linux.
+
+Vérifier que les parties Client et Server répondent :
+
+```bash
+docker version
+```
+
+### Construire l’image
+
+Depuis la racine du projet :
+
+```bash
+docker build -t oc-lettings:dev .
+```
+
+Le Dockerfile :
+
+- utilise Python 3.14.7 ;
+- installe les dépendances de `requirements.txt` ;
+- copie le code du projet ;
+- démarre le serveur Django sur `0.0.0.0:8000`.
+
+Le fichier `.dockerignore` exclut notamment les environnements virtuels,
+les fichiers de configuration locaux et les bases SQLite.
+
+### Préparer une copie SQLite dédiée à Docker
+
+Exemple pour Windows PowerShell, depuis la racine du projet.
+
+La commande suivante crée `docker-local.sqlite3`. Elle refuse de remplacer
+un fichier déjà présent :
+
+```powershell
+python -c "import sqlite3; from pathlib import Path; src = Path('oc-lettings-site.sqlite3').resolve(); dst = Path('docker-local.sqlite3').resolve(); assert src.is_file(), 'Base source introuvable'; assert not dst.exists(), 'Copie Docker deja presente : utiliser la copie existante ou choisir un autre nom'; source = sqlite3.connect(src.as_uri() + '?mode=ro', uri=True); target = sqlite3.connect(str(dst)); source.backup(target); target.close(); source.close(); print(dst)"
+```
+
+La source est ouverte en lecture seule. Le conteneur utilisera la copie.
+
+### Créer et démarrer le conteneur
+
+Si un conteneur nommé `oc-lettings-local` existe déjà, consulter la section
+« Reprendre un conteneur existant ».
+
+Pour une première création :
+
+```powershell
+$dockerDatabase = (Resolve-Path .\docker-local.sqlite3).Path
+```
+
+```powershell
+docker run -d --name oc-lettings-local -p 127.0.0.1:8001:8000 --mount "type=bind,source=$dockerDatabase,target=/app/oc-lettings-site.sqlite3" oc-lettings:dev
+```
+
+Appliquer les migrations sur la copie montée :
+
+```bash
+docker exec oc-lettings-local python manage.py migrate --noinput
+docker exec oc-lettings-local python manage.py migrate --check
+```
+
+Consulter les messages :
+
+```bash
+docker logs --tail 50 oc-lettings-local
+```
+
+Ouvrir http://127.0.0.1:8001/.
+
+Le port 8001 de l’ordinateur est relié au port 8000 du conteneur.
+Le service est publié uniquement sur l’interface locale.
+
+### Reprendre un conteneur existant
+
+```bash
+docker ps -a
+docker start oc-lettings-local
+```
+
+Arrêter le conteneur :
+
+```bash
+docker stop oc-lettings-local
+```
+
+`docker start` conserve le montage défini lors de la création.
+Il ne remplace pas la base montée par un autre fichier.
+
+Les données de la copie SQLite restent sur l’ordinateur après l’arrêt
+ou la suppression du conteneur.
+
+### Vérifier l’image sans monter de base locale
+
+```bash
+docker run --rm oc-lettings:dev python manage.py check
+docker run --rm oc-lettings:dev python -m pytest --cov --cov-report=term-missing
+```
+
+Les tests utilisent leur propre base temporaire.
+
+Après une modification du code ou de la configuration des tests,
+reconstruire l’image pour y intégrer les nouveaux fichiers.
+
+Reconstruire une image ne met pas à jour un conteneur déjà créé.
+
+### Limites actuelles
+
+Cette configuration Docker est destinée au développement local.
+
+Elle utilise encore `runserver` et les réglages de développement.
+Le serveur de production, la configuration des secrets, les fichiers
+statiques en production et le déploiement restent à finaliser.
+
+## Intégration continue
+
+Le workflow `.github/workflows/ci.yml` s’exécute sur les push et les
+pull requests.
+
+Il effectue les étapes suivantes :
+
+1. Récupération du code.
+2. Installation de Python à partir de `.python-version`.
+3. Installation des dépendances.
+4. Vérification de leur compatibilité.
+5. Vérification de la configuration Django.
+6. Vérification des changements de modèles non migrés.
+7. Analyse Flake8.
+8. Tests avec une couverture minimale de 80 %.
+9. Construction de l’image Docker.
+
+Une étape en échec fait échouer le job.
+
+Cette pipeline vérifie le projet ; elle ne publie pas encore d’image et
+ne déploie pas l’application.
+
+Consulter les exécutions :
+
+https://github.com/Kiyat1724/Python-OC-Lettings-FR/actions
+
+## Consulter les données
+
+Tables métier actuelles :
+
+- `lettings_address`
+- `lettings_letting`
+- `profiles_profile`
+
+Si la commande SQLite est installée :
+
+```bash
+sqlite3 oc-lettings-site.sqlite3
+```
+
+Puis, dans SQLite :
+
+```sql
+.tables
+PRAGMA table_info(profiles_profile);
+SELECT user_id, favorite_city FROM profiles_profile;
+.quit
+```

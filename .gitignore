@@ -19,3 +19,7 @@ htmlcov/
 
 # Fichiers statiques collectés
 staticfiles/
+
+# Base locale utilisée pour les essais Docker
+/docker-local.sqlite3
+/docker-local.sqlite3-*
