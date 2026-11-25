@@ -253,7 +253,7 @@ Le Dockerfile :
 - utilise Python 3.14.7 ;
 - installe les dépendances de `requirements.txt` ;
 - copie le code du projet ;
-- démarre le serveur Django sur `0.0.0.0:8000`.
+- démarre Gunicorn sur `0.0.0.0:8000`.
 
 Le fichier `.dockerignore` exclut notamment les environnements virtuels,
 les fichiers de configuration locaux et les bases SQLite.
@@ -344,14 +344,74 @@ Reconstruire une image ne met pas à jour un conteneur déjà créé.
 
 ### Limites actuelles
 
-Cette configuration Docker est destinée au développement local.
+Cette section décrit les essais locaux avec Docker.
+Le conteneur utilise Gunicorn et WhiteNoise. La commande locale active
+le débogage ; la procédure ci-dessous permet de vérifier le fonctionnement
+avec `DEBUG=False`.
 
-Elle utilise encore `runserver`. Les réglages sont configurables par
-variables d’environnement ; la commande locale active explicitement
-le débogage.
+## Exécution locale avec Gunicorn et WhiteNoise
 
-Le serveur de production, la fourniture des secrets au déploiement, les
-fichiers statiques en production et le déploiement restent à finaliser.
+Le Dockerfile démarre désormais Gunicorn à la place de `runserver`.
+
+WhiteNoise sert les fichiers statiques regroupés pendant la construction
+avec `collectstatic`, y compris lorsque `DEBUG=False`.
+
+Le nom d’un tag Docker ne change pas le comportement du Dockerfile :
+une image reconstruite avec le tag `dev` utilisera également Gunicorn.
+
+### Construire l’image
+
+```powershell
+docker build -t oc-lettings:prod .
+```
+
+La collecte utilise une clé factice limitée à la commande de construction.
+Une clé d’exécution doit toujours être fournie au démarrage du conteneur.
+
+### Créer un conteneur de vérification
+
+Définir les variables d’environnement dans le terminal comme indiqué
+dans la section d’installation locale.
+
+Utiliser la copie SQLite dédiée, après avoir arrêté tout autre
+conteneur qui l’utiliserait :
+
+```powershell
+$dockerDatabase = (Resolve-Path .\docker-local.sqlite3).Path
+```
+
+Pour une première création du conteneur :
+
+```powershell
+docker run -d --name oc-lettings-prod-check -p 127.0.0.1:8003:8000 -e DJANGO_SECRET_KEY -e DJANGO_DEBUG=False -e DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost --mount "type=bind,source=$dockerDatabase,target=/app/oc-lettings-site.sqlite3" oc-lettings:prod
+```
+
+Si ce conteneur existe déjà, utiliser `docker start` pour le reprendre
+avec sa configuration initiale, plutôt que relancer `docker run`.
+
+Vérifier les migrations :
+
+```powershell
+docker exec oc-lettings-prod-check python manage.py migrate --noinput
+docker exec oc-lettings-prod-check python manage.py migrate --check
+```
+
+### Vérifier le fonctionnement
+
+```powershell
+docker logs --tail 30 oc-lettings-prod-check
+curl.exe -I http://127.0.0.1:8003/
+curl.exe -I http://127.0.0.1:8003/static/css/styles.css
+```
+
+Ouvrir http://127.0.0.1:8003/ et vérifier les pages, le style et
+l’administration.
+
+### État de préparation au déploiement
+
+Gunicorn et WhiteNoise sont configurés et testés localement.
+Le déploiement public, HTTPS, les secrets persistants et le stockage
+durable doivent encore être configurés sur l’hébergement retenu.
 
 ## Intégration continue
 

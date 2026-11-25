@@ -11,7 +11,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN DJANGO_SECRET_KEY=build-only-placeholder-not-for-runtime \
+    DJANGO_DEBUG=False \
+    python manage.py collectstatic --noinput
+
 EXPOSE 8000
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
-
+CMD ["gunicorn", "oc_lettings_site.wsgi:application", "--bind", "0.0.0.0:8000", "--access-logfile", "-", "--error-logfile", "-"]
