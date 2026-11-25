@@ -413,6 +413,71 @@ Gunicorn et WhiteNoise sont configurés et testés localement.
 Le déploiement public, HTTPS, les secrets persistants et le stockage
 durable doivent encore être configurés sur l’hébergement retenu.
 
+## Surveillance avec Sentry
+
+L’application utilise le SDK Sentry avec les intégrations Django et logging.
+
+La surveillance est activée uniquement si la variable `SENTRY_DSN`
+est renseignée. Sans DSN, aucun envoi Sentry n’est initialisé.
+
+### Activer Sentry en local
+
+Dans PowerShell, après avoir configuré les variables Django :
+
+```powershell
+$env:SENTRY_DSN = Read-Host "Collez votre DSN Sentry"
+$env:SENTRY_ENVIRONMENT = "development"
+```
+
+Saisir le DSN complet à l’invite, puis appuyer sur Entrée.
+Ne pas enregistrer sa valeur dans le code.
+
+Le logger `oc_lettings` et ses enfants transmettent les messages de
+niveau INFO ou supérieur. Les messages ERROR peuvent également créer
+des événements dans Issues.
+
+Les vues enregistrent un avertissement lorsqu’une location ou un profil
+demandé est introuvable, puis conservent la réponse HTTP 404.
+
+La collecte automatique des informations utilisateur, corps de requêtes,
+cookies, en-têtes, paramètres de requête et variables locales est limitée
+par la configuration `data_collection`.
+
+### Vérifications réalisées
+
+- Réception d’une exception RuntimeError de démonstration dans Issues.
+- Réception d’un message INFO dans Logs.
+- Réception des avertissements des vues pour les ressources introuvables.
+- Réussite des 11 tests après intégration.
+
+### Tests ordinaires sans transmission à Sentry
+
+Dans PowerShell, retirer temporairement le DSN avant les tests :
+
+```powershell
+Remove-Item Env:SENTRY_DSN -ErrorAction SilentlyContinue
+python -m pytest --cov --cov-report=term-missing --cov-fail-under=80
+```
+
+Pour réactiver Sentry, saisir à nouveau le DSN avec Read-Host.
+
+La CI ne fournit pas de DSN et ne transmet donc pas les erreurs simulées
+par les tests.
+
+### Exécution dans Docker
+
+Les variables du terminal ne sont pas transmises automatiquement au
+conteneur. Pour activer Sentry, ajouter à la commande docker run :
+
+```text
+-e SENTRY_DSN -e SENTRY_ENVIRONMENT
+```
+
+Ces variables doivent être définies dans le terminal avant la création
+du conteneur. Redémarrer un ancien conteneur ne change pas ses variables.
+
+L’activation sur l’hébergement sera vérifiée lors du déploiement.
+
 ## Intégration continue
 
 Le workflow `.github/workflows/ci.yml` s’exécute sur les push et les

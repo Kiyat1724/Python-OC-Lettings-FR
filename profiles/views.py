@@ -1,8 +1,14 @@
 """Vues des listes et des fiches de profils."""
 
+import logging
+
+from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 
 from .models import Profile
+
+
+logger = logging.getLogger('oc_lettings.profiles')
 
 
 def profiles_index(request):
@@ -14,6 +20,11 @@ def profiles_index(request):
 
 def profile(request, username):
     """Afficher un profil ou renvoyer une 404 s'il n'existe pas."""
-    profile = get_object_or_404(Profile, user__username=username)
+    try:
+        profile = get_object_or_404(Profile, user__username=username)
+    except Http404:
+        logger.warning('Profil demande introuvable.')
+        raise
+
     context = {'profile': profile}
     return render(request, 'profile.html', context)

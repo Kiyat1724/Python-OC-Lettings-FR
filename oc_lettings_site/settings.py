@@ -1,7 +1,11 @@
 """Configuration Django du projet Orange County Lettings."""
-
+import logging
 import os
 from pathlib import Path
+
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -128,3 +132,47 @@ STORAGES = {
         'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
     },
 }
+
+# Journalisation de l'application.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'oc_lettings': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+
+# Surveillance activée uniquement lorsqu'un DSN est fourni.
+SENTRY_DSN = os.environ.get('SENTRY_DSN', '').strip()
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=os.environ.get('SENTRY_ENVIRONMENT', 'development'),
+        integrations=[
+            DjangoIntegration(),
+            LoggingIntegration(
+                level=logging.INFO,
+                breadcrumb_level=logging.INFO,
+                event_level=logging.ERROR,
+            ),
+        ],
+        data_collection={
+            'user_info': False,
+            'http_bodies': [],
+            'cookies': {'mode': 'off'},
+            'http_headers': {'request': {'mode': 'off'}},
+            'url_query_params': {'mode': 'off'},
+            'stack_frame_variables': {'mode': 'off'},
+        },
+    )
