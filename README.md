@@ -75,6 +75,42 @@ Vérifier l’installation :
 python --version
 python -m django --version
 uv pip check
+```
+
+### Configurer les variables d’environnement
+
+Django exige une clé secrète fournie par `DJANGO_SECRET_KEY`.
+
+Dans PowerShell, après activation de l’environnement virtuel :
+
+```powershell
+$env:DJANGO_SECRET_KEY = python -c "import secrets; print(secrets.token_urlsafe(64))"
+$env:DJANGO_DEBUG = "True"
+$env:DJANGO_ALLOWED_HOSTS = "127.0.0.1,localhost"
+```
+
+Ces variables restent disponibles uniquement dans le terminal actuel.
+Les redéfinir après ouverture d’un nouveau terminal. Générer une nouvelle
+clé locale peut invalider les sessions existantes ; une reconnexion peut
+être nécessaire.
+
+Sous Linux/macOS :
+
+```bash
+export DJANGO_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(64))')"
+export DJANGO_DEBUG=True
+export DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
+```
+
+Sans `DJANGO_DEBUG`, le débogage est désactivé par défaut.
+Un fichier `.env` n’est pas chargé automatiquement par cette configuration.
+
+Pour le déploiement, fournir une clé distincte et persistante via la
+configuration de l’hébergeur. Ne pas l’enregistrer dans Git.
+
+Vérifier la configuration après avoir défini les variables :
+
+```bash
 python manage.py check
 ```
 
@@ -225,6 +261,8 @@ les fichiers de configuration locaux et les bases SQLite.
 ### Préparer une copie SQLite dédiée à Docker
 
 Exemple pour Windows PowerShell, depuis la racine du projet.
+Définir d’abord les variables de la section « Configurer les variables
+d’environnement » dans ce même terminal.
 
 La commande suivante crée `docker-local.sqlite3`. Elle refuse de remplacer
 un fichier déjà présent :
@@ -247,7 +285,7 @@ $dockerDatabase = (Resolve-Path .\docker-local.sqlite3).Path
 ```
 
 ```powershell
-docker run -d --name oc-lettings-local -p 127.0.0.1:8001:8000 --mount "type=bind,source=$dockerDatabase,target=/app/oc-lettings-site.sqlite3" oc-lettings:dev
+docker run -d --name oc-lettings-local -p 127.0.0.1:8001:8000 -e DJANGO_SECRET_KEY -e DJANGO_DEBUG=True -e DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost --mount "type=bind,source=$dockerDatabase,target=/app/oc-lettings-site.sqlite3" oc-lettings:dev
 ```
 
 Appliquer les migrations sur la copie montée :
@@ -281,8 +319,11 @@ Arrêter le conteneur :
 docker stop oc-lettings-local
 ```
 
-`docker start` conserve le montage défini lors de la création.
-Il ne remplace pas la base montée par un autre fichier.
+`docker start` conserve le montage, les variables et l’image définis lors
+de la création. Il ne récupère pas les nouvelles variables du terminal
+et ne remplace pas la base montée par un autre fichier. Un conteneur
+antérieur à la configuration par variables doit être recréé pour
+utiliser la nouvelle image et ces paramètres.
 
 Les données de la copie SQLite restent sur l’ordinateur après l’arrêt
 ou la suppression du conteneur.
@@ -290,8 +331,8 @@ ou la suppression du conteneur.
 ### Vérifier l’image sans monter de base locale
 
 ```bash
-docker run --rm oc-lettings:dev python manage.py check
-docker run --rm oc-lettings:dev python -m pytest --cov --cov-report=term-missing
+docker run --rm -e DJANGO_SECRET_KEY -e DJANGO_DEBUG=False -e DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,testserver oc-lettings:dev python manage.py check
+docker run --rm -e DJANGO_SECRET_KEY -e DJANGO_DEBUG=False -e DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,testserver oc-lettings:dev python -m pytest --cov --cov-report=term-missing
 ```
 
 Les tests utilisent leur propre base temporaire.
@@ -305,9 +346,12 @@ Reconstruire une image ne met pas à jour un conteneur déjà créé.
 
 Cette configuration Docker est destinée au développement local.
 
-Elle utilise encore `runserver` et les réglages de développement.
-Le serveur de production, la configuration des secrets, les fichiers
-statiques en production et le déploiement restent à finaliser.
+Elle utilise encore `runserver`. Les réglages sont configurables par
+variables d’environnement ; la commande locale active explicitement
+le débogage.
+
+Le serveur de production, la fourniture des secrets au déploiement, les
+fichiers statiques en production et le déploiement restent à finaliser.
 
 ## Intégration continue
 

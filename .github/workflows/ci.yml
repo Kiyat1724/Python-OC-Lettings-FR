@@ -7,6 +7,11 @@ on:
 permissions:
   contents: read
 
+env:
+  DJANGO_SECRET_KEY: "ci-only-placeholder-not-for-production-0123456789abcdef0123456789"
+  DJANGO_DEBUG: "False"
+  DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,testserver"
+
 jobs:
   quality:
     name: Verification du projet
