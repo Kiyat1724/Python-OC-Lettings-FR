@@ -248,15 +248,21 @@ Depuis la racine du projet :
 docker build -t oc-lettings:dev .
 ```
 
-Le Dockerfile :
+LLe Dockerfile :
 
 - utilise Python 3.14.7 ;
-- installe les dépendances de `requirements.txt` ;
-- copie le code du projet ;
-- démarre Gunicorn sur `0.0.0.0:8000`.
+- installe les dépendances avec uv 0.12.13 depuis `requirements.txt` ;
+- copie le code du projet dans l’image ;
+- lance `docker_start.py` au démarrage du conteneur.
 
-Le fichier `.dockerignore` exclut notamment les environnements virtuels,
-les fichiers de configuration locaux et les bases SQLite.
+Le script `docker_start.py` :
+
+1. applique les migrations avec `migrate --noinput` ;
+2. collecte les fichiers statiques avec `collectstatic --noinput` ;
+3. démarre Gunicorn sur le port défini par `PORT`, ou sur `8000` par défaut.
+
+La clé `DJANGO_SECRET_KEY` est fournie au lancement du conteneur.
+La construction de l’image ne nécessite pas de clé Django.
 
 ### Préparer une copie SQLite dédiée à Docker
 
@@ -549,13 +555,18 @@ Il effectue les étapes suivantes :
 
 1. Récupération du code.
 2. Installation de Python à partir de `.python-version`.
-3. Installation des dépendances.
-4. Vérification de leur compatibilité.
-5. Vérification de la configuration Django.
-6. Vérification des changements de modèles non migrés.
-7. Analyse Flake8.
-8. Tests avec une couverture minimale de 80 %.
-9. Construction de l’image Docker.
+3. Installation de uv 0.12.13.
+4. Installation des dépendances avec uv depuis `requirements.txt`.
+5. Vérification de leur compatibilité avec uv.
+6. Vérification de la configuration Django.
+7. Vérification des changements de modèles non migrés.
+8. Analyse Flake8.
+9. Collecte des fichiers statiques.
+10. Tests avec une couverture minimale de 80 %.
+11. Construction de l’image Docker.
+
+Sentry est désactivé pendant ces vérifications pour éviter l’envoi
+d’événements issus des tests.
 
 Une étape en échec fait échouer le job.
 
