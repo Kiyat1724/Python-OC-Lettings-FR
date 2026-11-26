@@ -478,6 +478,68 @@ du conteneur. Redémarrer un ancien conteneur ne change pas ses variables.
 
 L’activation sur l’hébergement sera vérifiée lors du déploiement.
 
+## Image publiée sur Docker Hub
+
+Dépôt public : https://hub.docker.com/r/rouksaid/oc-lettings
+
+Image vérifiée :
+
+```text
+rouksaid/oc-lettings:5ab62ae
+```
+
+Le tag `5ab62ae` identifie le commit utilisé pour construire cette image.
+
+### Télécharger l’image
+
+```powershell
+docker pull rouksaid/oc-lettings:5ab62ae
+```
+
+### Exécuter l’image téléchargée
+
+Définir d’abord `DJANGO_SECRET_KEY` dans le terminal comme indiqué
+dans la section de configuration.
+
+Préparer la copie `docker-local.sqlite3` avec la procédure précédente
+et arrêter tout autre conteneur utilisant cette copie.
+
+```powershell
+$dockerDatabase = (Resolve-Path .\docker-local.sqlite3).Path
+```
+
+Pour une première création :
+
+```powershell
+docker run -d --name oc-lettings-hub-check -p 127.0.0.1:8004:8000 -e DJANGO_SECRET_KEY -e DJANGO_DEBUG=False -e DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost -e SENTRY_DSN= --mount "type=bind,source=$dockerDatabase,target=/app/oc-lettings-site.sqlite3" rouksaid/oc-lettings:5ab62ae
+```
+
+Sentry est désactivé pour ce contrôle.
+
+Si la copie nécessite des migrations :
+
+```powershell
+docker exec oc-lettings-hub-check python manage.py migrate --noinput
+```
+
+Ouvrir http://127.0.0.1:8004/.
+
+Pour reprendre ce même conteneur après un arrêt :
+
+```powershell
+docker start oc-lettings-hub-check
+```
+
+### Vérifications effectuées
+
+- Téléchargement de l’image depuis Docker Hub.
+- Vérification de la configuration Django.
+- Réponse HTTP 200 pour l’accueil.
+- Réponse HTTP 200 et type text/css pour la feuille de style.
+
+L’image ne contient pas la base SQLite. Les données sont fournies
+séparément par montage.
+
 ## Intégration continue
 
 Le workflow `.github/workflows/ci.yml` s’exécute sur les push et les
